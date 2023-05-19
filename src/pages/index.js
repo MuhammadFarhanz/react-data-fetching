@@ -1,11 +1,134 @@
 import Head from 'next/head'
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
-import styles from '@/styles/Home.module.css'
-
-const inter = Inter({ subsets: ['latin'] })
+import { Container, Heading, Table, Tbody, Thead ,Tr, Th, Td, Spinner, VStack, FormControl, FormLabel, Input, Button, useToast, NumberInput, NumberInputField,} from '@chakra-ui/react'
+import { useFormik } from 'formik'
+import {useFetchProducts, useCreateProduct, useDeleteProduct, useEditProduct} from '@/features/product'
 
 export default function Home() {
+  const toast = useToast()
+
+  const {data: products, isLoading: productsIsLoading, refetch:refetchProducts} = useFetchProducts({
+    onError: () => {
+      toast({
+        title: 'Error dude something happens',
+        status: 'error'
+      })
+    }
+  })
+
+  const formik = useFormik({
+    initialValues:{
+      name: '',
+      price: '',
+      description: '',
+      image: '',
+      id: '',
+    },
+    onSubmit : () => {
+      console.log("aku disubmit mahhh")
+      const {name, price, description, image, id} = formik.values;
+
+      if(id){
+        editProduct({
+          name,
+          price: parseInt(price),
+          description,
+          image,
+          id
+        })
+
+        toast({
+          title : 'product edited',
+          status : 'success'
+        })
+      }else{
+        mutate({
+          name,
+          price: parseInt(price),
+          description,
+          image,
+        })
+  
+        toast({
+          title : 'product added ',
+          status : 'success'
+        })
+      }
+
+      formik.setFieldValue('name','')
+      formik.setFieldValue('price','')
+      formik.setFieldValue('description','')
+      formik.setFieldValue('image','')
+      formik.setFieldValue('id','')
+    }
+  })
+
+  const { mutate , isLoading: createProductIsLoading} = useCreateProduct({
+    onSuccess: () => {
+      refetchProducts()
+    },
+  })
+
+  const { mutate: deleteProduct } = useDeleteProduct({
+      onSuccess: () => {
+        refetchProducts()
+      } 
+  })
+  const { mutate: editProduct, isLoading: editProductIsLoading} = useEditProduct({
+    onSuccess: () => {
+      refetchProducts()
+    }
+  })
+  
+  const handleForm = (event) => {
+    formik.setFieldValue(event.target.name, event.target.value)
+  }
+
+  const deleteConfirmation = (productId) => {
+    const shouldDelete = confirm("are u sure ?")
+
+    if(shouldDelete){
+      deleteProduct(productId)
+    }
+
+    toast({
+      title: 'product deleted',
+      status:'info'
+    })
+  }
+  const onEditClick = (product) => {
+    formik.setFieldValue('id',product.id)
+    formik.setFieldValue('name',product.name)
+    formik.setFieldValue('price',product.price)
+    formik.setFieldValue('description',product.description)
+    formik.setFieldValue('image',product.image)
+  }
+
+  const renderProduct = () => {
+    return products?.data.map((product) => {
+      return (
+        <Tr key={product.id}>
+          <Td>{product.id}</Td>
+          <Td>{product.name}</Td>
+          <Td>{product.price}</Td>
+          <Td>{product.description}</Td>
+          <Td>{product.image}</Td>
+          <Td >
+            <Button 
+            onClick={() => {onEditClick(product)}} 
+            colorScheme='cyan'>
+            edit</Button>
+          </Td>
+          <Td >
+            <Button 
+            onClick={() => {deleteConfirmation(product.id)}} 
+            colorScheme='red'>
+            delete</Button>
+          </Td>
+        </Tr>
+      )
+    })
+  }
+
   return (
     <>
       <Head>
@@ -14,101 +137,55 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className={`${styles.main} ${inter.className}`}>
-        <div className={styles.description}>
-          <p>
-            Get started by editing&nbsp;
-            <code className={styles.code}>src/pages/index.js</code>
-          </p>
-          <div>
-            <a
-              href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              By{' '}
-              <Image
-                src="/vercel.svg"
-                alt="Vercel Logo"
-                className={styles.vercelLogo}
-                width={100}
-                height={24}
-                priority
-              />
-            </a>
-          </div>
-        </div>
-
-        <div className={styles.center}>
-          <Image
-            className={styles.logo}
-            src="/next.svg"
-            alt="Next.js Logo"
-            width={180}
-            height={37}
-            priority
-          />
-        </div>
-
-        <div className={styles.grid}>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2>
-              Docs <span>-&gt;</span>
-            </h2>
-            <p>
-              Find in-depth information about Next.js features and&nbsp;API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2>
-              Learn <span>-&gt;</span>
-            </h2>
-            <p>
-              Learn about Next.js in an interactive course with&nbsp;quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2>
-              Templates <span>-&gt;</span>
-            </h2>
-            <p>
-              Discover and deploy boilerplate example Next.js&nbsp;projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2>
-              Deploy <span>-&gt;</span>
-            </h2>
-            <p>
-              Instantly deploy your Next.js site to a shareable URL
-              with&nbsp;Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
+      <Container>
+        <Heading>Hellow World</Heading>
+        <Table>
+            <Thead>
+              <Tr>
+                <Th>ID</Th>
+                <Th>Name</Th>
+                <Th>Price</Th>
+                <Th>description</Th>
+                <Th>Image</Th>
+                <Th colSpan={2}>Actions</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {renderProduct()}
+              {productsIsLoading && <Spinner/> }
+            </Tbody>
+        </Table>
+     
+        <form onSubmit={formik.handleSubmit}>
+          <VStack>
+          <FormControl>
+              <FormLabel>Product ID</FormLabel>
+              <Input onChange={handleForm} name='id' value={formik.values.id}></Input>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Product Name</FormLabel>
+              <Input onChange={handleForm} name='name' value={formik.values.name}></Input>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Price</FormLabel>
+              <Input onChange={handleForm} name='price' value={formik.values.price}></Input>
+{/* 
+              <NumberInput>
+                <NumberInputField onChange={handleForm} name='price' value={formik.values.price}/>
+              </NumberInput> */}
+            </FormControl>
+            <FormControl>
+              <FormLabel>Description</FormLabel>
+              <Input onChange={handleForm}  name='description' value={formik.values.description}></Input>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Image</FormLabel>
+              <Input onChange={handleForm} name='image' value={formik.values.image}></Input>
+            </FormControl>
+            {createProductIsLoading ||editProductIsLoading ?<Spinner/> : <Button type='submit'>submit</Button>  }    
+          </VStack>
+        </form>
+      </Container>
     </>
   )
 }
